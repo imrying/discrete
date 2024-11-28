@@ -89,7 +89,7 @@ def congruences_system_solver(system):
 
     for i in range(len(M_list)):
         x+=system[i][0]*M_list[i]*y_list[i]
-    
+    print(f'all solutions are {x % m} + {m}k')
     return x % m, m, M_list, y_list
 
 
@@ -197,3 +197,23 @@ def calculate_derangements(n):
         result += ((-1)**i) / math.factorial(i)
 
     return round(math.factorial(n) * result)
+
+
+
+
+def multiplicative_inverse(n, mod):
+    def gcd_extended(a, b):
+        if a == 0:
+            return b, 0, 1
+        gcd, x1, y1 = gcd_extended(b % a, a)
+        x = y1 - (b // a) * x1
+        y = x1
+        return gcd, x, y
+
+    gcd, x, _ = gcd_extended(n, mod)
+
+    if gcd != 1:  # If gcd of n and mod is not 1, inverse doesn't exist
+        return "Does not exist"
+    else:
+        # Make the result positive
+        return x % mod
