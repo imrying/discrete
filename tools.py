@@ -3,22 +3,46 @@ from itertools import permutations
 import math
 
 
+def is_prime(n):
+    if n <= 1:
+        return False
+
+    for i in range(2, int(n**0.5) + 1):
+
+        if n % i == 0:
+            return False
+
+    return True
+
+def primes_below(n):
+    primes = [i for i in range(2, n) if is_prime(i)]
+    return f"Number of primes below {n} is {len(primes)} and the list is {primes}"
+
+def divide_with_remainder(a, b):
+    if b == 0:
+        return "Division by zero is undefined."
+    
+    quotient = a // b
+    remainder = a % b
+    return f"The quotient of {a} divided by {b} is {quotient}, and the remainder is {remainder}."
+
+
 # sent by jesper TA<3
-def min_gcd(a,b):
-    rlist = [a,b]
+def gcd(a, b):
+    rlist = [a, b]
     qlist = []
 
     while True:
         r1 = rlist[-2]
         r2 = rlist[-1]
-        if r2==0:
+        if r2 == 0:
             break
-        new_r = r1%r2
-        qlist.append(r1//r2)
+        new_r = r1 % r2
+        qlist.append(r1 // r2)
         rlist.append(new_r)
 
-    slist = [1,0]
-    tlist = [0,1]
+    slist = [1, 0]
+    tlist = [0, 1]
 
     for q in qlist:
         s1 = slist[-2]
@@ -26,8 +50,8 @@ def min_gcd(a,b):
         t1 = tlist[-2]
         t2 = tlist[-1]
         
-        slist.append(s1-q*s2)
-        tlist.append(t1-q*t2)
+        slist.append(s1 - q * s2)
+        tlist.append(t1 - q * t2)
     
     i = 0
     print('i \t r_i \t r_i+1 \t q_i+1 \t r_i+2 \t s_i \t t_i')
@@ -36,9 +60,30 @@ def min_gcd(a,b):
         i += 1
     print(f'\t\t\t\t\t {slist[-2]} \t {tlist[-2]}')
 
+    gcd_value = rlist[-2]
+    s_coeff = slist[-2]
+    t_coeff = tlist[-2]
+    result_string = f"GCD({a}, {b}) = {gcd_value}, with coefficients {s_coeff} and {t_coeff} such that {gcd_value} = ({s_coeff})*{a} + ({t_coeff})*{b}"
+    
+    print(f'{result_string}')
+    #return gcd_value, s_coeff, t_coeff, result_string
 
-    print(f'{rlist[-2]} = ({slist[-2]})*{a} + ({tlist[-2]})*{b}')
-    return rlist[-2], slist[-2], tlist[-2]
+def lcm(a, b):
+    def gcd(a, b):
+        while b:
+            a, b = b, a % b
+        return a
+    
+    gcd_value = gcd(a, b)
+    lcm_value = abs(a * b) // gcd_value
+    
+    result_string = (
+        f"LCM({a}, {b}) = {lcm_value}, Here, GCD({a}, {b}) = {gcd_value}."
+    )
+    
+    print(result_string)
+    #return lcm_value, result_string
+
 
 
 # Sent by Alexander Piepgrass <3
