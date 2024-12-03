@@ -1,6 +1,9 @@
 import re
-from itertools import permutations
+from itertools import permutations, product, chain, combinations
 import math
+import numpy as np
+
+
 
 
 def is_prime(n):
@@ -221,6 +224,18 @@ def get_permutations(input_string):
     # Convert to a list of strings
     perm_list = [''.join(p) for p in perm]
     return perm_list
+
+
+def get_binary_strings(n, as_strings=False):
+    # Generate all possible bit strings of length n
+    bit_combinations = product([0, 1], repeat=n)
+    if as_strings:
+        # Join bits as strings
+        return ["".join(map(str, bits)) for bits in bit_combinations]
+    else:
+        # Return as lists of integers
+        return [list(bits) for bits in bit_combinations]
+
 
 
 def calculate_derangements(n):
