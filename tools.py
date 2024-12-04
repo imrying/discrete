@@ -225,6 +225,24 @@ def get_permutations(input_string):
     perm_list = [''.join(p) for p in perm]
     return perm_list
 
+def get_r_permutations(input_string, r):
+    """
+    Returns all r-permutations of the given string.
+    
+    Parameters:
+        input_string (str): The string to generate permutations from.
+        r (int): The length of the permutations.
+    
+    Returns:
+        list: A list of all r-permutations as strings.
+    """
+    # Generate r-permutations using itertools.permutations
+    r_perm = permutations(input_string, r)
+    # Convert to a list of strings
+    r_perm_list = [''.join(p) for p in r_perm]
+    return r_perm_list
+
+
 
 def get_binary_strings(n, as_strings=False):
     # Generate all possible bit strings of length n
@@ -236,7 +254,36 @@ def get_binary_strings(n, as_strings=False):
         # Return as lists of integers
         return [list(bits) for bits in bit_combinations]
 
+def get_combinations(input_string):
+    """
+    Returns all combinations of the given string (for all lengths).
+    
+    Parameters:
+        input_string (str): The string to generate combinations from.
+    
+    Returns:
+        list: A list of all combinations as strings.
+    """
+    comb_list = []
+    for r in range(1, len(input_string) + 1):
+        comb_list.extend([''.join(c) for c in combinations(input_string, r)])
+    return comb_list
 
+def get_r_combinations(input_string, r):
+    """
+    Returns all r-combinations of the given string.
+    
+    Parameters:
+        input_string (str): The string to generate combinations from.
+        r (int): The length of the combinations.
+    
+    Returns:
+        list: A list of all r-combinations as strings.
+    """
+    r_comb = combinations(input_string, r)
+    r_comb_list = [''.join(c) for c in r_comb]
+    return r_comb_list
+    
 
 def calculate_derangements(n):
 
