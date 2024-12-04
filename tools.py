@@ -2,6 +2,7 @@ import re
 from itertools import permutations, product, chain, combinations
 import math
 import numpy as np
+from sympy import mod_inverse
 
 
 
@@ -138,6 +139,44 @@ def congruences_system_solver(system):
     for i in range(len(M_list)):
         x+=system[i][0]*M_list[i]*y_list[i]
     print(f'all solutions are {x % m} + {m}k')
+    return x % m, m, M_list, y_list
+
+
+def some_congruences_system_solver(system):
+    """
+    Solve a system of congruences.
+    Each element of `system` is a tuple (a, b, n), representing b*x ≡ a (mod n).
+    """
+    normalized_system = []
+    for a, b, n in system:
+        g = math.gcd(b, n)
+        if a % g != 0:
+            raise ValueError(f"No solution exists for {b}*x ≡ {a} (mod {n})")
+        # Reduce b*x ≡ a (mod n) to x ≡ c (mod m)
+        b = b // g
+        a = a // g
+        n = n // g
+        b_inv = mod_inverse(b, n)
+        c = (b_inv * a) % n
+        normalized_system.append((c, n))
+    
+    # Solve the normalized system of congruences
+    m = 1
+    for _, n in normalized_system:
+        m *= n
+    M_list = []
+    for _, n in normalized_system:
+        M_list.append(m // n)
+    y_list = []
+    for i in range(len(M_list)):
+        r, s, t = _min_gcd_congruences(M_list[i], normalized_system[i][1])
+        y_list.append(s)
+    
+    x = 0
+    for i in range(len(M_list)):
+        x += normalized_system[i][0] * M_list[i] * y_list[i]
+    
+    print(f'All solutions are {x % m} + {m}k')
     return x % m, m, M_list, y_list
 
 def solve_congruence_general(a, c, m):
