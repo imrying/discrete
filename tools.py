@@ -140,6 +140,41 @@ def congruences_system_solver(system):
     print(f'all solutions are {x % m} + {m}k')
     return x % m, m, M_list, y_list
 
+def solve_congruence_general(a, c, m):
+    """
+    Solves the congruence ax ≡ c (mod m).
+    Returns a general solution in the form x ≡ x0 + k*b (mod m), 
+    or 'No solution' if no solution exists.
+    """
+    from math import gcd
+
+    # Step 1: Compute gcd(a, m)
+    g = gcd(a, m)
+
+    # Step 2: Check if a solution exists
+    if c % g != 0:
+        return "No solution"
+
+    # Step 3: Simplify the congruence
+    a, c, m = a // g, c // g, m // g
+
+    # Step 4: Find the modular inverse of a modulo m
+    def extended_gcd(a, b):
+        """Helper function to compute the extended GCD."""
+        if b == 0:
+            return a, 1, 0
+        g, x, y = extended_gcd(b, a % b)
+        return g, y, x - (a // b) * y
+
+    g, x, _ = extended_gcd(a, m)
+    if g != 1:  # Sanity check for modular inverse
+        return "No solution"
+
+    x = (x % m + m) % m  # Ensure x is positive
+    x0 = (c * x) % m  # Particular solution
+
+    # General solution is x ≡ x0 + k * m
+    return f"x ≡ {x0} + k * {m}"
 
 
 
