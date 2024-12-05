@@ -3,6 +3,7 @@ from itertools import permutations, product, chain, combinations
 import math
 import numpy as np
 from sympy import mod_inverse
+import matplotlib.pyplot as plt
 
 
 
@@ -398,3 +399,25 @@ def multiplicative_inverse(n, mod):
     else:
         # Make the result positive
         return x % mod
+    
+
+def plot_function(functions: list, plot_range: list):
+    """Takes a function and plots the graph using the plot_range.
+    The plot_rage should be a list containing two elements: the minimum value to plot, up to the max value.
+    function should be a list of functions to be drawn. The functions in the list should take one parameter and return a value. 
+    """
+    x_values = range(plot_range[0],plot_range[1])
+    for func in functions:
+        y_points = []
+        x_points = []
+        for i in range(plot_range[0], plot_range[1]):
+            y_points.append(func(i))
+            x_points.append(i)
+        plt.plot(x_points, y_points, label=func.__name__)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Function Plots')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
