@@ -360,7 +360,7 @@ def get_r_combinations(input_string, r):
     return r_comb_list
     
 
-def calculate_derangements(n):
+def calculate_number_of_derangements(n):
 
     """
 
@@ -380,7 +380,20 @@ def calculate_derangements(n):
 
     return round(math.factorial(n) * result)
 
+def is_derangement(original, perm):
+    """
+    Checks if a permutation is a derangement of the original string.
+    """
+    return all(original[i] != perm[i] for i in range(len(original)))
 
+def get_derangements(input_string):
+    """
+    Returns all derangements of a given string as an array of strings.
+    """
+    original = list(input_string)
+    all_permutations = permutations(original)
+    derangements = ["".join(perm) for perm in all_permutations if is_derangement(original, perm)]
+    return derangements
 
 
 def multiplicative_inverse(n, mod):
