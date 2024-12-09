@@ -460,6 +460,46 @@ def is_partial_order(S, R):
     return is_antisymmetric(R) and is_reflexive(S, R) and is_transitive(R)
 
 
+def check_func(func_to_check, domain, codomain):
+    """
+    Check if a function is "well-defined" over a given domain and codomain constraint.
+    
+    Parameters:
+        func_to_check: callable
+            The function to check. It should take one argument.
+        domain: list
+            A list of values to test the function with.
+        codomain: callable
+            A callable that takes the output of the function and returns True if it satisfies the codomain constraint.
+    
+    Returns:
+        bool
+            True if the function is well-defined over the domain and codomain, otherwise False.
+    """
+    well_defined = True
+
+    for x in domain:
+        try:
+            # Evaluate the function
+            output = func_to_check(x)
+            
+            # Check the codomain constraint
+            if not codomain(output):
+                print(f"Input {x}: Output {output} is INVALID.")
+                well_defined = False
+        except Exception as e:
+            # Catch errors in evaluation
+            print(f"Input {x}: Error occurred - {str(e)}.")
+            well_defined = False
+
+    if well_defined:
+        print("The function is well-defined over the given domain.")
+    else:
+        print("The function is NOT well-defined over the given domain.")
+    
+    return well_defined
+
+
 
 def plot_function(functions: list, plot_range: list):
     """Takes a function and plots the graph using the plot_range.
