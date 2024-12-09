@@ -144,12 +144,8 @@ def congruences_system_solver(system):
 
 
 def some_congruences_system_solver(system):
-    """
-    Solve a system of congruences.
-    Each element of `system` is a tuple (a, b, n), representing b*x ≡ a (mod n).
-    """
     normalized_system = []
-    for a, b, n in system:
+    for b, a, n in system:
         g = math.gcd(b, n)
         if a % g != 0:
             raise ValueError(f"No solution exists for {b}*x ≡ {a} (mod {n})")
@@ -413,6 +409,57 @@ def multiplicative_inverse(n, mod):
         # Make the result positive
         return x % mod
     
+
+def minimum_selections_for_sum(numbers, target_sum):
+    selected_numbers = set()
+
+    for num in numbers:
+        if target_sum - num in selected_numbers:
+            # Pair found
+            return len(selected_numbers) + 1
+
+        selected_numbers.add(num)
+
+    # No pair found within the set
+    return None
+
+
+def is_transitive(R):
+    for a, b in R:
+        for c, d in R:
+            if b == c and ((a, d) not in R):
+                return False
+    return True
+
+
+def is_reflexive(S, R):
+    newSet = {(a, b) for a in S for b in S if a == b}
+    if R >= newSet:
+        return True
+
+    return False
+
+
+def is_symmetric(R):
+    if all(tup[::-1] in R for tup in R):
+        return True
+
+    return False
+
+
+def is_antisymmetric(R):
+    return all((y, x) not in R for x, y in R if x != y)
+
+
+def is_equivalence_relation(S, R):
+    return is_symmetric(R) and is_reflexive(S, R) and is_transitive(R)
+
+
+def is_partial_order(S, R):
+    """Check if the relation R on set S is a partial order."""
+    return is_antisymmetric(R) and is_reflexive(S, R) and is_transitive(R)
+
+
 
 def plot_function(functions: list, plot_range: list):
     """Takes a function and plots the graph using the plot_range.
