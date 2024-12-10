@@ -521,3 +521,18 @@ def plot_function(functions: list, plot_range: list):
     plt.grid(True)
     plt.show()
 
+def count_subsets(A, size=None, max_element=None, even_elements=False):
+    if size is not None:
+        # Count subsets of exact size
+        return math.comb(len(A), size)
+    elif max_element is not None:
+        # Count subsets that do not contain any element greater than max_element
+        filtered_A = [elem for elem in A if elem <= max_element]
+        return 2 ** len(filtered_A)
+    elif even_elements:
+        # Count subsets with an even number of elements
+        total_subsets = 2 ** len(A)
+        even_subsets = sum(math.comb(len(A), k) for k in range(0, len(A) + 1, 2))
+        return even_subsets
+    else:
+        return 0
