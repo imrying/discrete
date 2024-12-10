@@ -339,7 +339,7 @@ def get_combinations(input_string):
     comb_list = []
     for r in range(1, len(input_string) + 1):
         comb_list.extend([''.join(c) for c in combinations(input_string, r)])
-    return comb_list
+    return comb_list + ['']
 
 def get_r_combinations(input_string, r):
     """
