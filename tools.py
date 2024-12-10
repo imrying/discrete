@@ -4,6 +4,7 @@ import math
 import numpy as np
 from sympy import mod_inverse
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 
 
@@ -521,7 +522,7 @@ def plot_function(functions: list, plot_range: list):
     plt.grid(True)
     plt.show()
 
-def count_subsets(A, size=None, max_element=None, even_elements=False):
+def count_subsets1(A, size=None, max_element=None, even_elements=False):
     if size is not None:
         # Count subsets of exact size
         return math.comb(len(A), size)
@@ -536,3 +537,337 @@ def count_subsets(A, size=None, max_element=None, even_elements=False):
         return even_subsets
     else:
         return 0
+    
+
+
+def count_subsets(
+    A,
+    size=None,
+    max_element=None,
+    even_elements=False,
+    odd_elements=False,
+    sum_equals=None,
+    sum_range=None,
+    must_contain=None,
+    exclude=None,
+    predicate=None
+):
+    # Filter based on max_element and exclude
+    if max_element is not None:
+        A = [x for x in A if x <= max_element]
+    if exclude is not None:
+        exclude_set = set(exclude)
+        A = [x for x in A if x not in exclude_set]
+
+    # If must_contain is specified:
+    must_contain_elem = None
+    if must_contain is not None:
+        if must_contain not in A:
+            # If we must contain an element not in the set, no subsets possible
+            return 0
+        # Remove must_contain from A and we will add it back after computations
+        must_contain_elem = must_contain
+        A = [x for x in A if x != must_contain]
+
+    n = len(A)
+
+    # If a general predicate is given, we must test every subset.
+    # This can be very slow for large sets, but let's just be honest:
+    if predicate is not None:
+        # Brute force as a fallback for arbitrary predicate
+        # (User must be aware this could be slow if n is large)
+        count = 0
+        for r in range(n+1):
+            for subset in combinations(A, r):
+                # Add must_contain element if needed
+                if must_contain_elem is not None and must_contain_elem not in subset:
+                    subset = subset + (must_contain_elem,)
+                if not check_conditions(subset, size, even_elements, odd_elements, sum_equals, sum_range, must_contain_elem, predicate):
+                    continue
+                count += 1
+        return count
+
+    # If no sum conditions and no complicated predicate, we can try closed-form:
+    if sum_equals is None and sum_range is None and must_contain_elem is None:
+        # Conditions are now just size/even/odd
+        # Count how many subsets from A:
+        total_subsets = 2**n
+
+        if size is not None:
+            # number of subsets of given size:
+            return math.comb(n, size)
+
+        if even_elements and not odd_elements:
+            # Count even-sized subsets
+            even_count = sum(math.comb(n, k) for k in range(0, n+1, 2))
+            return even_count
+        if odd_elements and not even_elements:
+            # Count odd-sized subsets
+            odd_count = sum(math.comb(n, k) for k in range(1, n+1, 2))
+            return odd_count
+        if even_elements and odd_elements:
+            # No subset can be both even and odd sized
+            return 0
+
+        # If no conditions at all:
+        return total_subsets
+
+    # Handle must_contain:
+    # If must_contain_elem is not None, we will incorporate it by adjusting conditions:
+    # Adding must_contain_elem to a subset changes:
+    #  - The subset size: effectively size_needed = size - 1 (if size is given)
+    #  - The sum conditions: sum_needed = sum_equals - must_contain_elem (if sum_equals given)
+    #    or sum_range = (low - must_contain_elem, high - must_contain_elem) for sum_range.
+    # We must ensure that every counted subset does not contain must_contain_elem,
+    # but we add it at the end. Actually, we DO want them to contain it. So we must count subsets
+    # from A that meet adjusted conditions as if must_contain_elem was included automatically.
+    adj_size = size - 1 if (size is not None) else None
+    if sum_equals is not None and must_contain_elem is not None:
+        adj_sum_equals = sum_equals - must_contain_elem
+    else:
+        adj_sum_equals = sum_equals
+
+    if sum_range is not None and must_contain_elem is not None:
+        low, high = sum_range
+        sum_range = (low - must_contain_elem, high - must_contain_elem)
+
+    # If even_elements or odd_elements are given, adjusting for the must_contain_elem:
+    # Including must_contain_elem always adds 1 to the size, so even becomes odd and odd becomes even.
+    # If must_contain_elem is forced in:
+    # - If we wanted even subsets including must_contain_elem, now we must look for odd subsets in A.
+    # - If we wanted odd subsets including must_contain_elem, now we must look for even subsets in A.
+    adj_even_elements = even_elements
+    adj_odd_elements = odd_elements
+    if must_contain_elem is not None:
+        if even_elements and not odd_elements:
+            adj_even_elements = False
+            adj_odd_elements = True
+        elif odd_elements and not even_elements:
+            adj_even_elements = True
+            adj_odd_elements = False
+        # If both even and odd requested, still 0.
+
+    # After these adjustments, we count subsets in A that have:
+    # - size == adj_size (if size given)
+    # - even/odd parity adjusted
+    # - sum equals adj_sum_equals (if given) or sum in adjusted sum_range
+    # 
+    # We will use a meet-in-the-middle approach for sum conditions if n is large:
+
+    if n == 0:
+        # If there's nothing in A and must_contain_elem was specified, 
+        # the only subset is {must_contain_elem}.
+        # Check if that meets the conditions:
+        single_subset = [must_contain_elem] if must_contain_elem is not None else []
+        return 1 if check_conditions(single_subset, size, even_elements, odd_elements, sum_equals, sum_range, must_contain_elem, None) else 0
+
+    # Meet-in-the-middle:
+    mid = n // 2
+    A1 = A[:mid]
+    A2 = A[mid:]
+
+    # Generate subsets of A1
+    A1_data = []  # Will store tuples (sum, size)
+    for r in range(len(A1)+1):
+        for c in combinations(A1, r):
+            A1_data.append((sum(c), len(c)))
+
+    # Generate subsets of A2
+    A2_data = []
+    for r in range(len(A2)+1):
+        for c in combinations(A2, r):
+            A2_data.append((sum(c), len(c)))
+
+    # We need to efficiently count how many subsets from A2 complement A1's subsets to meet conditions.
+    # Conditions:
+    # - sum condition: If sum_equals is given, sum(A1)+sum(A2) = adj_sum_equals
+    #                  If sum_range is given, sum_range[0] <= sum(A1)+sum(A2) <= sum_range[1]
+    # - size condition: If adj_size is given, size(A1)+size(A2) = adj_size
+    # - parity: If adj_even_elements, total size mod 2 == 0; if adj_odd_elements, total size mod 2 == 1
+
+    # Let's store A2 subsets in a dictionary keyed by (sum, size) to quickly lookup counts
+    from collections import Counter
+    A2_count = Counter(A2_data)
+
+    count = 0
+    for (s1, sz1) in A1_data:
+        # Determine required conditions for the complementary subset (s2, sz2)
+        
+        # Size condition:
+        # If adj_size is given: sz2 must be adj_size - sz1
+        # If not given but parity is given:
+        #    if adj_even_elements: (sz1 + sz2) % 2 == 0 => sz2 % 2 == sz1 % 2
+        #    if adj_odd_elements: (sz1 + sz2) % 2 == 1 => sz2 % 2 != sz1 % 2
+
+        possible_sizes = []
+        if adj_size is not None:
+            needed_size = adj_size - sz1
+            if needed_size < 0 or needed_size > len(A2):
+                continue
+            # Only that size is possible
+            possible_sizes.append(needed_size)
+        else:
+            # no exact size condition, but we might have parity:
+            if adj_even_elements and not adj_odd_elements:
+                # total size even => sz2 % 2 == (even - sz1%2)
+                # For total even: (sz1 + sz2)%2=0 => sz2%2=sz1%2
+                possible_sizes = [sz2 for sz2 in range(len(A2)+1) if sz2 % 2 == sz1 % 2]
+            elif adj_odd_elements and not adj_even_elements:
+                # total size odd: (sz1 + sz2)%2=1 => sz2%2 != sz1%2
+                possible_sizes = [sz2 for sz2 in range(len(A2)+1) if sz2 % 2 != sz1 % 2]
+            else:
+                # no parity condition
+                possible_sizes = range(len(A2)+1)
+
+        # Sum condition:
+        # If adj_sum_equals is given: s1 + s2 = adj_sum_equals => s2 = adj_sum_equals - s1
+        # If sum_range is given: low <= s1+s2 <= high => low - s1 <= s2 <= high - s1
+
+        if adj_sum_equals is not None:
+            needed_s2 = adj_sum_equals - s1
+            # Only one sum needed
+            sums_to_check = [needed_s2]
+        elif sum_range is not None:
+            low, high = sum_range
+            # s2 must be in [low - s1, high - s1]
+            low_s2 = low - s1
+            high_s2 = high - s1
+            # We'll just iterate over possible sizes and sum over all subsets in that sum range.
+            # This might still be slow if sum range is large. We can optimize by precomputing sums per size.
+            # Let's precompute a dictionary of sums by size for A2 to avoid large loops.
+
+            # Precompute if not done
+            # We have A2_count indexed by (sum, size).
+            # We'll sum over sums in range. If range is large, this could be slow.
+            # As an optimization, let's store A2 subsets by size in a sorted list by sum.
+
+            # Precomputation (done once, cached):
+            # Create a dictionary: size -> sorted list of sums
+            # We'll do binary search over this list for [low_s2, high_s2]
+            pass
+        else:
+            # No sum condition, sums_to_check = all sums
+            # We can just sum over all sums in A2_count with given sizes
+            sums_to_check = None
+
+        # To handle large ranges efficiently, let's do a precomputation outside the loop:
+        # We'll build a dictionary: by_size = { sz2: sorted list of (sum, count) } for A2
+        # We do this once:
+        # (Move this precomputation outside the loop for efficiency)
+        # Since this is a code snippet, we implement it directly here:
+
+    # Let's move precomputation outside the loop to avoid repeated work:
+    # Construct by_size dict:
+    by_size = {}
+    for (s2, sz2), cnt in A2_count.items():
+        if sz2 not in by_size:
+            by_size[sz2] = []
+        by_size[sz2].append((s2, cnt))
+    for sz2 in by_size:
+        by_size[sz2].sort(key=lambda x: x[0])  # sort by sum
+
+    # Now re-run the counting loop with this optimization
+    count = 0
+    for (s1, sz1) in A1_data:
+        if adj_size is not None:
+            needed_size = adj_size - sz1
+            if needed_size < 0 or needed_size > len(A2):
+                continue
+            size_candidates = [needed_size]
+        else:
+            if adj_even_elements and not adj_odd_elements:
+                size_candidates = [sz2 for sz2 in by_size.keys() if sz2 % 2 == sz1 % 2]
+            elif adj_odd_elements and not adj_even_elements:
+                size_candidates = [sz2 for sz2 in by_size.keys() if sz2 % 2 != sz1 % 2]
+            else:
+                size_candidates = by_size.keys()
+
+        # Check sum conditions
+        if adj_sum_equals is not None:
+            needed_s2 = adj_sum_equals - s1
+            # For each candidate size:
+            for sz2 in size_candidates:
+                # binary search in by_size[sz2] for s2 == needed_s2
+                arr = by_size[sz2]
+                # binary search:
+                lo, hi = 0, len(arr)-1
+                while lo <= hi:
+                    mid = (lo+hi)//2
+                    if arr[mid][0] == needed_s2:
+                        count += arr[mid][1]
+                        break
+                    elif arr[mid][0] < needed_s2:
+                        lo = mid+1
+                    else:
+                        hi = mid-1
+        elif sum_range is not None:
+            low, high = sum_range
+            low_s2 = low - s1
+            high_s2 = high - s1
+            # For each candidate size, we find all sums in range [low_s2, high_s2]
+            for sz2 in size_candidates:
+                arr = by_size[sz2]
+                # find left boundary:
+                left_idx = binary_search_left(arr, low_s2)
+                # find right boundary:
+                right_idx = binary_search_right(arr, high_s2)
+                if left_idx <= right_idx and 0 <= left_idx < len(arr):
+                    # sum all counts in that range
+                    for i in range(left_idx, min(right_idx+1, len(arr))):
+                        count += arr[i][1]
+        else:
+            # No sum condition, just sum all subsets of given sizes
+            for sz2 in size_candidates:
+                # sum all counts in by_size[sz2]
+                arr = by_size[sz2]
+                for (_, cval) in arr:
+                    count += cval
+
+    # After counting subsets from adjusted conditions, if must_contain_elem was included, we have the correct count.
+    return count
+
+def check_conditions(subset, size, even_elements, odd_elements, sum_equals, sum_range, must_contain, predicate):
+    # This function checks conditions on a fully formed subset that should already include must_contain if needed.
+    # It's used in fallback cases.
+    if must_contain is not None and must_contain not in subset:
+        return False
+    length = len(subset)
+    if size is not None and length != size:
+        return False
+    if even_elements and (length % 2 != 0):
+        return False
+    if odd_elements and (length % 2 == 0):
+        return False
+    s = sum(subset)
+    if sum_equals is not None and s != sum_equals:
+        return False
+    if sum_range is not None:
+        low, high = sum_range
+        if not (low <= s <= high):
+            return False
+    if predicate is not None and not predicate(subset):
+        return False
+    return True
+
+def binary_search_left(arr, val):
+    # arr is sorted by first element (sum)
+    # find leftmost position to insert val
+    lo, hi = 0, len(arr)
+    while lo < hi:
+        mid = (lo+hi)//2
+        if arr[mid][0] < val:
+            lo = mid+1
+        else:
+            hi = mid
+    return lo
+
+def binary_search_right(arr, val):
+    # find rightmost position where arr[i][0] <= val
+    lo, hi = 0, len(arr)
+    while lo < hi:
+        mid = (lo+hi)//2
+        if arr[mid][0] <= val:
+            lo = mid+1
+        else:
+            hi = mid
+    return lo-1
